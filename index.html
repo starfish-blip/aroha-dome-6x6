@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AROHA 3D Dome // Master Matrix v40 (Aligned)</title>
+    <style>
+        :root { --bg: #040508; --panel: rgba(8, 10, 16, 0.93); --border: rgba(0, 240, 255, 0.42); --cyan: #00f0ff; --amber: #ffb86a; --violet: #d880ff; --text: #e2e8f0; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: var(--bg); font-family: system-ui, -apple-system, sans-serif; color: var(--text); user-select: none; }
+        canvas#dome-canvas { position: fixed; inset: 0; z-index: 1; width: 100vw; height: 100vh; display: block; cursor: grab; }
+        canvas#dome-canvas:active { cursor: grabbing; }
+        .hud { position: absolute; top: 10px; left: 10px; z-index: 10; background: var(--panel); border: 1px solid var(--border); padding: 13px; border-radius: 12px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.9); width: 445px; max-height: calc(100vh - 20px); overflow-y: auto; backdrop-filter: blur(12px); }
+        .hud h1 { font-size: 0.92rem; margin: 0 0 5px 0; color: var(--cyan); letter-spacing: 0.8px; border-bottom: 1px solid rgba(0, 240, 255, 0.22); padding-bottom: 5px; display: flex; justify-content: space-between; }
+        .nav-row { display: flex; gap: 4px; margin-bottom: 6px; }
+        .nav-row a { flex: 1; text-align: center; padding: 4px; background: rgba(0, 240, 255, 0.12); border: 1px solid rgba(0, 240, 255, 0.35); color: #fff; text-decoration: none; border-radius: 4px; font-family: monospace; font-size: 0.68rem; }
+        .telemetry-row { display: flex; justify-content: space-between; font-family: monospace; font-size: 0.72rem; margin: 2px 0; }
+        .section-title { font-size: 0.69rem; text-transform: uppercase; letter-spacing: 1px; color: var(--amber); margin: 7px 0 3px 0; padding-top: 5px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+        .grid-6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+        .grid-8 { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; }
+        button { padding: 4px 6px; background: rgba(0, 240, 255, 0.08); border: 1px solid rgba(0, 240, 255, 0.3); color: #b8d8e8; border-radius: 4px; font-family: monospace; font-size: 0.69rem; cursor: pointer; transition: all 0.12s; }
+        button:hover { background: rgba(0, 240, 255, 0.24); color: #fff; }
+        button.active { background: rgba(216, 128, 255, 0.28); border-color: var(--violet); color: #fff; font-weight: bold; }
+        .step-btn { text-align: center; padding: 4px 2px; font-size: 0.65rem; }
+        .step-btn.playing { border-color: #00ff88; background: rgba(0, 255, 136, 0.28); color: #fff; }
+        .ladder-btn[data-level="3"].active { background: rgba(220, 50, 50, 0.35); border-color: #ff5555; color: #ffaaaa; }
+        .ladder-btn[data-level="6"].active { background: rgba(20, 180, 110, 0.35); border-color: #20e090; color: #aaffdd; }
+        .ladder-btn[data-level="9"].active { background: rgba(245, 195, 45, 0.35); border-color: #ffd700; color: #fff2aa; }
+        .handshake-box { margin-top: 5px; padding: 6px; border-radius: 6px; background: rgba(255, 184, 106, 0.08); border: 1px solid rgba(255, 184, 106, 0.4); }
+        .btn-confirm { background: rgba(255, 215, 0, 0.18); border-color: #ffd700; color: #ffd700; font-weight: bold; }
+        .btn-reject { background: rgba(255, 50, 160, 0.18); border-color: #ff32a0; color: #ff88cc; font-weight: bold; }
+        .control-group { margin-top: 4px; }
+        .control-group label { display: flex; justify-content: space-between; font-size: 0.70rem; color: #b0c4de; }
+        .control-group input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--cyan); height: 4px; }
+        canvas#scope-canvas { width: 100%; height: 42px; background: rgba(0, 0, 0, 0.65); border: 1px solid rgba(0, 240, 255, 0.25); border-radius: 4px; margin-top: 4px; }
+        .chat-box { margin-top: 4px; background: rgba(0, 0, 0, 0.65); border: 1px solid rgba(0, 240, 255, 0.28); border-radius: 6px; padding: 6px; font-family: monospace; font-size: 0.70rem; line-height: 1.35; height: 88px; overflow-y: auto; color: #d0f0ff; user-select: text; }
+        .chat-msg { margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px dashed rgba(255,255,255,0.08); }
+        .chat-badge { display: inline-block; font-size: 0.62rem; color: #ffd700; background: rgba(255,215,0,0.12); padding: 1px 4px; border-radius: 3px; margin-bottom: 2px; }
+        .chat-input-row { display: flex; gap: 4px; margin-top: 4px; }
+        .chat-input-row input { flex: 1; background: rgba(0, 0, 0, 0.75); border: 1px solid rgba(0, 240, 255, 0.35); color: #fff; padding: 4px 6px; border-radius: 4px; font-family: monospace; font-size: 0.70rem; }
+        #shader-log { color: #00ff88; font-family: monospace; font-size: 0.67rem; margin-top: 5px; padding-top: 4px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+    </style>
+</head>
+<body>
+    <div class="hud">
+        <h1><span>AROHA 3D Dome // Matrix v40</span><span id="val-mode" style="font-size:0.68rem; color:#00ff88;">PYTHON BRIDGE</span></h1>
+        <div class="nav-row">
+            <a href="tarot.html">🃏 4-Point Tarot</a>
+            <a href="astro.html">✦ Astro Sanctum</a>
+            <a href="domains.html">⚡ Domains</a>
+        </div>
+        <div class="telemetry-row"><span>Active Layer:</span><strong id="val-tier" style="color:var(--amber);">Tier 6: Sentient Observer</strong></div>
+        <div class="telemetry-row"><span>Resonance Ladder:</span><strong id="val-ladder" style="color:#ffd700;">Level 9: Citrine / Gold (Au)</strong></div>
+        <div class="telemetry-row"><span>Thermal / Pitch:</span><span><strong id="val-temp">38.1</strong> °C | <strong id="val-freq">285.31</strong> Hz</span></div>
+        <div class="telemetry-row"><span>Vocal Key / Lunar:</span><span id="val-vowel">A (730/1090 Hz) | Rākaunui</span></div>
+        <div class="telemetry-row"><span>Entropy S(ρ_A):</span><span><strong id="val-ent">0.4285</strong> bits (<span id="val-regime" style="color:var(--violet);">1+1=3</span>)</span></div>
+        <div class="telemetry-row"><span>MIDI (Oxygen 61):</span><span id="val-midi" style="color:var(--cyan);">Scanning Web MIDI...</span></div>
+
+        <div class="section-title">1. 6-Tier Consciousness & Density Scale</div>
+        <div class="grid-2">
+            <button class="tier-btn" data-tier="1" data-temp="24.6" data-gamma="0.05" data-lam="0.05" data-disp="0.08">1. Gases (Hau)</button>
+            <button class="tier-btn" data-tier="2" data-temp="28.6" data-gamma="0.30" data-lam="0.15" data-disp="0.12">2. Liquids (Wai)</button>
+            <button class="tier-btn" data-tier="3" data-temp="32.6" data-gamma="0.55" data-lam="0.25" data-disp="0.15">3. Plant Life</button>
+            <button class="tier-btn" data-tier="4" data-temp="34.6" data-gamma="0.85" data-lam="0.35" data-disp="0.18">4. Fish / Aquatic</button>
+            <button class="tier-btn" data-tier="5" data-temp="36.6" data-gamma="1.25" data-lam="0.50" data-disp="0.22">5. Mammals (36.6C)</button>
+            <button class="tier-btn active" data-tier="6" data-temp="38.1" data-gamma="1.85" data-lam="0.75" data-disp="0.28">6. Sentient Dome</button>
+        </div>
+
+        <div class="section-title">2. 9-Level Ladder, Multi-Octave Stack & Live Scope</div>
+        <div class="grid-3">
+            <button class="ladder-btn" data-level="3">Lvl 3: Fe / Obsidian</button>
+            <button class="ladder-btn" data-level="6">Lvl 6: Cu / Pounamu</button>
+            <button class="ladder-btn active" data-level="9">Lvl 9: Au / Gold</button>
+        </div>
+        <div class="grid-4" style="margin-top:4px;">
+            <button class="oct-btn active" data-mult="0.5">Sub 0.5x</button>
+            <button class="oct-btn active" data-mult="1.0">Root 1.0x</button>
+            <button class="oct-btn" data-mult="1.5">Fifth 1.5x</button>
+            <button class="oct-btn active" data-mult="2.0">Oct 2.0x</button>
+        </div>
+        <canvas id="scope-canvas" width="400" height="42"></canvas>
+
+        <div class="section-title">3. 6-Key Vocal Gate (C-A-E-I-O-U) & Maramataka</div>
+        <div class="grid-6">
+            <button class="vowel-btn" data-vowel="C">C</button>
+            <button class="vowel-btn active" data-vowel="A">A</button>
+            <button class="vowel-btn" data-vowel="E">E</button>
+            <button class="vowel-btn" data-vowel="I">I</button>
+            <button class="vowel-btn" data-vowel="O">O</button>
+            <button class="vowel-btn" data-vowel="U">U</button>
+        </div>
+        <div class="grid-2" style="margin-top:4px;">
+            <button class="lunar-btn active" data-lunar="Rakaunui">🌕 Rākaunui (Full/Gold)</button>
+            <button class="lunar-btn" data-lunar="Whiro">🌑 Whiro (New/Indigo)</button>
+        </div>
+
+        <div class="section-title">4. 8-Step Thermal / MIDI Loop Sequencer</div>
+        <div class="grid-8" id="seq-grid">
+            <button class="step-btn" data-step="0">36.6°</button>
+            <button class="step-btn" data-step="1">38.1°</button>
+            <button class="step-btn" data-step="2">39.6°</button>
+            <button class="step-btn" data-step="3">36.6°</button>
+            <button class="step-btn" data-step="4">34.6°</button>
+            <button class="step-btn" data-step="5">32.6°</button>
+            <button class="step-btn" data-step="6">36.6°</button>
+            <button class="step-btn" data-step="7">40.1°</button>
+        </div>
+        <div class="grid-2" style="margin-top:4px;">
+            <button id="btn-seq-play">▶ Start 8-Step Loop</button>
+            <button id="btn-seq-write">Write Current T° to Step</button>
+        </div>
+
+        <div class="handshake-box">
+            <div style="font-size:0.69rem; font-family:monospace; margin-bottom:4px; display:flex; justify-content:space-between;">
+                <span>Point 25 Handshake Gate:</span>
+                <strong id="val-handshake" style="color:#ffd700;">PENDING VERIFICATION</strong>
+            </div>
+            <div class="grid-3">
+                <button class="btn-confirm" id="btn-hs-confirm">✓ Confirm (1+1=3)</button>
+                <button class="btn-reject" id="btn-hs-reject">✗ Reject (Reset)</button>
+                <button id="btn-hs-ledger">📜 View Ledger</button>
+            </div>
+        </div>
+
+        <div class="section-title">5. Zone 1 Spatial AR Portal</div>
+        <div class="grid-2">
+            <button id="btn-ar-cam">Toggle AR Camera</button>
+            <button id="btn-ar-gyro">Enable 6-DOF Gyro</button>
+        </div>
+        <div id="ar-status" style="font-family:monospace; font-size:0.67rem; color:#7af7ff; margin-top:2px;">AR Portal Standby</div>
+
+        <div class="section-title">6. AI Oracle Reflection Chat (Live State Mapped)</div>
+        <div class="grid-3" style="margin-bottom:4px;">
+            <button class="catalyst-btn" data-prompt="Decode my active Tier, Vocal Key, and entropy state">Decode State</button>
+            <button class="catalyst-btn" data-prompt="Check my thermal alignment against the 36.6C fulcrum">36.6°C Check</button>
+            <button class="catalyst-btn" data-prompt="Evaluate Point 25 Handshake readiness">Point 25 Audit</button>
+        </div>
+        <div class="chat-box" id="chat-log">
+            <div class="chat-msg">
+                <span class="chat-badge">v40 Full Alignment</span><br>
+                6-Key Vocal Gate (C-A-E-I-O-U), Cross-Partition Ring Entangler, Transparent AR Camera, Live Scope, and Serverless Fallback active.
+            </div>
+        </div>
+        <div class="chat-input-row">
+            <input type="text" id="chat-input" placeholder="Ask Oracle (press Enter)...">
+            <button id="chat-send" style="background:rgba(0,240,255,0.22); font-weight:bold;">Reflect</button>
+        </div>
+
+        <div class="control-group" style="margin-top:5px;">
+            <label><span>Temperature T (24.6°C – 48.6°C)</span><span id="lbl-temp">38.1 °C</span></label>
+            <input type="range" id="slider-temp" min="24.6" max="48.6" step="0.1" value="38.1">
+        </div>
+        <div class="control-group">
+            <label><span>Entanglement Coupling (γ)</span><span id="lbl-gamma">1.85x</span></label>
+            <input type="range" id="slider-gamma" min="0.0" max="2.5" step="0.05" value="1.85">
+        </div>
+        <div class="control-group">
+            <label><span>3D Normal Displacement Gain (u_dome_meta.z)</span><span id="lbl-disp">0.28</span></label>
+            <input type="range" id="slider-disp" min="0.0" max="0.65" step="0.01" value="0.28">
+        </div>
+
+        <div class="grid-3" style="margin-top:5px;">
+            <button id="btn-wire">Mesh: SOLID</button>
+            <button id="btn-train">Train: ON</button>
+            <button id="btn-audio">Audio: OFF</button>
+        </div>
+        <div id="shader-log">Master Matrix v40 | All 3 Zones & Specs Synchronized.</div>
+    </div>
+
+    <canvas id="dome-canvas"></canvas>
+
+    <script src="maramataka.js"></script>
+    <script src="tab3_spatial_ar.js"></script>
+    <script>
+        let yaw = 0.6, pitch = 0.45, camDist = 3.4, dragging = false, lastX = 0, lastY = 0;
+
+        if (window.ArohaSpatialARPortal) {
+            const arPortal = new ArohaSpatialARPortal('ar-status');
+            document.getElementById('btn-ar-cam').addEventListener('click', async (e) => {
+                const active = await arPortal.toggleCamera();
+                e.target.classList.toggle('active', active);
+            });
+            document.getElementById('btn-ar-gyro').addEventListener('click', (e) => {
+                e.target.classList.add('active');
+                arPortal.initGyroscope((a, b, g) => {
+                    if (!dragging) {
+                        yaw = (a * Math.PI) / 180.0;
+                        pitch = Math.max(-0.2, Math.min(1.45, (b * Math.PI) / 180.0));
+                    }
+                });
+            });
+        }
+
+        const logEl = document.getElementById('shader-log');
+        const modeEl = document.getElementById('val-mode');
+        const tierEl = document.getElementById('val-tier');
+        const ladderEl = document.getElementById('val-ladder');
+        const tempEl = document.getElementById('val-temp');
+        const freqEl = document.getElementById('val-freq');
+        const vowelEl = document.getElementById('val-vowel');
+        const entEl = document.getElementById('val-ent');
+        const regimeEl = document.getElementById('val-regime');
+        const midiEl = document.getElementById('val-midi');
+        const hsEl = document.getElementById('val-handshake');
+        const chatLog = document.getElementById('chat-log');
+        const chatInput = document.getElementById('chat-input');
+
+        const sliderTemp = document.getElementById('slider-temp');
+        const sliderGamma = document.getElementById('slider-gamma');
+        const sliderDisp = document.getElementById('slider-disp');
+        const lblTemp = document.getElementById('lbl-temp');
+        const lblGamma = document.getElementById('lbl-gamma');
+        const lblDisp = document.getElementById('lbl-disp');
+
+        let currentTier = 6, currentLam = 0.75, currentVowel = 'A', currentLadder = 9, currentLunar = 'Rakaunui';
+        let trainActive = true, wireframeMode = false, clientValidity = 0.5;
+
+        const VOWEL_CLIENT = {
+            C: { f1: 500, f2: 1500, role: '36.6C Anchor' },
+            A: { f1: 730, f2: 1090, role: 'Heart Spark' },
+            E: { f1: 530, f2: 1840, role: 'Throat Bridge' },
+            I: { f1: 270, f2: 2290, role: 'Crown Apex' },
+            O: { f1: 570, f2: 840,  role: 'Torus Pour' },
+            U: { f1: 300, f2: 870,  role: 'Terra Root' }
+        };
+
+        document.querySelectorAll('.tier-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tier-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentTier = parseInt(btn.dataset.tier);
+                sliderTemp.value = btn.dataset.temp;
+                sliderGamma.value = btn.dataset.gamma;
+                sliderDisp.value = btn.dataset.disp;
+                currentLam = parseFloat(btn.dataset.lam);
+                pollPythonEngine();
+            });
+        });
+
+        document.querySelectorAll('.ladder-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.ladder-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentLadder = parseInt(btn.dataset.level);
+                pollPythonEngine();
+            });
+        });
+
+        document.querySelectorAll('.vowel-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.vowel-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentVowel = btn.dataset.vowel;
+                if (currentVowel === 'C') sliderTemp.value = "36.6";
+                pollPythonEngine();
+            });
+        });
+
+        document.querySelectorAll('.lunar-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.lunar-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentLunar = btn.dataset.lunar;
+                pollPythonEngine();
+            });
+        });
+
+        const seqTemps = [36.6, 38.1, 39.6, 36.6, 34.6, 32.6, 36.6, 40.1];
+        let seqPlaying = false, seqIndex = 0, selectedStep = 0, seqTimer = null;
+        const stepBtns = document.querySelectorAll('.step-btn');
+
+        stepBtns.forEach((btn, idx) => {
+            btn.addEventListener('click', () => {
+                stepBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedStep = idx;
+                sliderTemp.value = seqTemps[idx].toFixed(1);
+                pollPythonEngine();
+            });
+        });
+
+        document.getElementById('btn-seq-write').addEventListener('click', () => {
+            const val = parseFloat(sliderTemp.value);
+            seqTemps[selectedStep] = val;
+            stepBtns[selectedStep].textContent = `${val.toFixed(1)}°`;
+        });
+
+        document.getElementById('btn-seq-play').addEventListener('click', (e) => {
+            seqPlaying = !seqPlaying;
+            if (seqPlaying) {
+                e.target.textContent = '⏹ Stop 8-Step Loop';
+                e.target.classList.add('active');
+                seqTimer = setInterval(() => {
+                    stepBtns.forEach(b => b.classList.remove('playing'));
+                    stepBtns[seqIndex].classList.add('playing');
+                    sliderTemp.value = seqTemps[seqIndex].toFixed(1);
+                    pollPythonEngine();
+                    seqIndex = (seqIndex + 1) % 8;
+                }, 420);
+            } else {
+                e.target.textContent = '▶ Start 8-Step Loop';
+                e.target.classList.remove('active');
+                clearInterval(seqTimer);
+                stepBtns.forEach(b => b.classList.remove('playing'));
+            }
+        });
+
+        document.getElementById('btn-hs-confirm').addEventListener('click', async () => {
+            clientValidity = 1.0;
+            try {
+                const res = await fetch('/api/handshake', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({action:'confirm'}) });
+                const data = await res.json();
+                hsEl.textContent = `LOCKED [SHA256: ${data.hash}]`;
+            } catch {
+                hsEl.textContent = `LOCKED [LOCAL-1+1=3]`;
+            }
+            hsEl.style.color = '#ffd700';
+            pollPythonEngine();
+        });
+
+        document.getElementById('btn-hs-reject').addEventListener('click', async () => {
+            clientValidity = 0.0;
+            try {
+                await fetch('/api/handshake', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({action:'reject'}) });
+            } catch {}
+            hsEl.textContent = '3-1=1 RESET';
+            hsEl.style.color = '#ff44aa';
+            pollPythonEngine();
+        });
+
+        document.getElementById('btn-hs-ledger').addEventListener('click', async () => {
+            try {
+                const res = await fetch('/api/ledger');
+                const data = await res.json();
+                const msg = document.createElement('div');
+                msg.className = 'chat-msg';
+                if (data.count === 0) {
+                    msg.innerHTML = `<span class="chat-badge">Tier 3 Ledger</span><br>No confirmed Point 25 handshakes recorded yet.`;
+                } else {
+                    const last = data.entries[data.entries.length - 1];
+                    msg.innerHTML = `<span class="chat-badge">Tier 3 Ledger (${data.count} blocks)</span><br>Latest Block #${last.index} [${last.timestamp}]<br>SHA-256: <span style="color:#00ff88;">${last.sha256.slice(0,24)}...</span>`;
+                }
+                chatLog.appendChild(msg);
+                chatLog.scrollTop = chatLog.scrollHeight;
+            } catch {
+                const msg = document.createElement('div');
+                msg.className = 'chat-msg';
+                msg.innerHTML = `<span class="chat-badge">Serverless Ledger</span><br>Running in static browser mode.`;
+                chatLog.appendChild(msg);
+            }
+        });
+
+        async function sendOraclePrompt(promptText) {
+            const q = (promptText || chatInput.value).trim();
+            if (!q) return;
+            chatInput.value = '';
+            const userDiv = document.createElement('div');
+            userDiv.className = 'chat-msg';
+            userDiv.innerHTML = `<span style="color:#ffb86a; font-weight:bold;">You:</span> ${q}`;
+            chatLog.appendChild(userDiv);
+            chatLog.scrollTop = chatLog.scrollHeight;
+            try {
+                const res = await fetch('/api/oracle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: q, tier_id: currentTier, temp_c: parseFloat(sliderTemp.value), gamma_scale: parseFloat(sliderGamma.value), lam: currentLam, vowel: currentVowel, ladder_level: currentLadder, maramataka: currentLunar })
+                });
+                const data = await res.json();
+                const botDiv = document.createElement('div');
+                botDiv.className = 'chat-msg';
+                botDiv.innerHTML = `<span class="chat-badge">${data.telemetry_badge} • ${data.source}</span><br><span style="color:#00f0ff; font-weight:bold;">AROHA:</span> ${data.reply}`;
+                chatLog.appendChild(botDiv);
+                chatLog.scrollTop = chatLog.scrollHeight;
+            } catch {
+                const botDiv = document.createElement('div');
+                botDiv.className = 'chat-msg';
+                botDiv.innerHTML = `<span class="chat-badge">Serverless Quantum Fallback</span><br><span style="color:#00f0ff; font-weight:bold;">AROHA:</span> Tier ${currentTier} | Key ${currentVowel} | ${sliderTemp.value}°C active.`;
+                chatLog.appendChild(botDiv);
+                chatLog.scrollTop = chatLog.scrollHeight;
+            }
+        }
+
+        document.getElementById('chat-send').addEventListener('click', () => sendOraclePrompt());
+        chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendOraclePrompt(); });
+        document.querySelectorAll('.catalyst-btn').forEach(btn => {
+            btn.addEventListener('click', () => sendOraclePrompt(btn.dataset.prompt));
+        });
+
+        document.getElementById('btn-train').addEventListener('click', (e) => {
+            trainActive = !trainActive; e.target.textContent = trainActive ? 'Train: ON' : 'Train: OFF';
+        });
+        document.getElementById('btn-wire').addEventListener('click', (e) => {
+            wireframeMode = !wireframeMode; e.target.textContent = wireframeMode ? 'Mesh: WIRE' : 'Mesh: SOLID';
+        });
+
+        let audioCtx = null, stackOscs = [], oscBeat = null, filterF1 = null, filterF2 = null, masterGain = null, analyser = null, scopeData = null, audioActive = false;
+        const octMultipliers = [0.5, 1.0, 1.5, 2.0];
+        const octButtons = document.querySelectorAll('.oct-btn');
+        const scopeCanvas = document.getElementById('scope-canvas');
+        const scopeCtx = scopeCanvas.getContext('2d');
+
+        octButtons.forEach((btn, idx) => {
+            btn.addEventListener('click', () => {
+                btn.classList.toggle('active');
+                if (audioCtx && stackOscs[idx]) {
+                    const active = btn.classList.contains('active');
+                    stackOscs[idx].gain.gain.setTargetAtTime(active ? 0.25 : 0.0, audioCtx.currentTime, 0.03);
+                }
+            });
+        });
+
+        document.getElementById('btn-audio').addEventListener('click', async (e) => {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') await audioCtx.resume();
+                filterF1 = audioCtx.createBiquadFilter();
+                filterF2 = audioCtx.createBiquadFilter();
+                masterGain = audioCtx.createGain();
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 256;
+                scopeData = new Uint8Array(analyser.frequencyBinCount);
+                filterF1.type = 'bandpass'; filterF1.frequency.value = 730; filterF1.Q.value = 4.5;
+                filterF2.type = 'bandpass'; filterF2.frequency.value = 1090; filterF2.Q.value = 5.5;
+                masterGain.gain.value = 0.14;
+                octMultipliers.forEach((mult, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const g = audioCtx.createGain();
+                    osc.type = idx === 0 ? 'sine' : 'sawtooth';
+                    g.gain.value = octButtons[idx].classList.contains('active') ? 0.25 : 0.0;
+                    osc.connect(g); g.connect(filterF1); g.connect(filterF2);
+                    osc.start();
+                    stackOscs.push({ osc, gain: g, mult });
+                });
+                oscBeat = audioCtx.createOscillator();
+                oscBeat.type = 'triangle';
+                oscBeat.connect(filterF1);
+                oscBeat.start();
+                filterF1.connect(masterGain); filterF2.connect(masterGain);
+                masterGain.connect(analyser); analyser.connect(audioCtx.destination);
+                audioActive = true;
+            } else {
+                if (audioCtx.state === 'suspended') await audioCtx.resume();
+                audioActive = !audioActive;
+                masterGain.gain.setTargetAtTime(audioActive ? 0.14 : 0.0, audioCtx.currentTime, 0.05);
+            }
+            e.target.textContent = audioActive ? 'Audio: ON' : 'Audio: OFF';
+        });
+
+        const canvas = document.getElementById('dome-canvas');
+        const gl = canvas.getContext('webgl2', { antialias: true, alpha: true, preserveDrawingBuffer: true });
+        gl.enable(gl.DEPTH_TEST);
+
+        function resize() {
+            canvas.width = window.innerWidth * window.devicePixelRatio;
+            canvas.height = window.innerHeight * window.devicePixelRatio;
+            gl.viewport(0, 0, canvas.width, canvas.height);
+        }
+        window.addEventListener('resize', resize); resize();
+
+        const vsSource = `#version 300 es
+precision highp float;
+layout(location = 0) in vec3 a_position;
+layout(location = 1) in vec2 a_uv;
+layout(std140) uniform ArohaResonanceUBO {
+    vec4 u_obs_y;
+    vec4 u_thermal;
+    vec4 u_emergence;
+    vec4 u_weights[4];
+    vec4 u_dome_meta;
+};
+uniform mat4 u_modelViewProjection;
+out vec2 v_uv;
+out float v_chladni_amp;
+out float v_emergence_mix;
+out float v_validity;
+const float PI = 3.14159265359;
+void main() {
+    v_uv = a_uv;
+    vec2 grid_dims = u_dome_meta.xy;
+    vec2 cell_id = floor(a_uv * grid_dims);
+    vec2 cell_center = (cell_id + 0.5) / grid_dims;
+    float acoustic_ratio = u_thermal.z / 261.63;
+    float omega = 2.0 * PI * acoustic_ratio;
+    float time_phase = u_emergence.w * omega * 0.35 + u_thermal.w;
+    float m_A = 1.0 + abs(u_weights[0].x) * 3.0 * acoustic_ratio;
+    float n_A = 1.0 + abs(u_weights[1].x) * 3.0;
+    float wave_A = u_obs_y.x * cos(m_A * PI * a_uv.x + u_weights[0].y) * cos(n_A * PI * a_uv.y + time_phase) + u_obs_y.y * sin(n_A * PI * a_uv.x) * sin(m_A * PI * a_uv.y);
+    float m_B = 1.0 + abs(u_weights[2].x) * 3.0;
+    float n_B = 1.0 + abs(u_weights[3].x) * 3.0 * acoustic_ratio;
+    float wave_B = u_obs_y.z * cos(m_B * PI * a_uv.y + u_weights[2].y) * cos(n_B * PI * a_uv.x - time_phase) + u_obs_y.w * sin(m_B * PI * a_uv.x) * sin(n_B * PI * a_uv.y);
+    float s_norm = clamp(u_emergence.x / 1.1, 0.0, 1.0);
+    float gamma_mean = 0.25 * (abs(u_weights[0].z) + abs(u_weights[1].z) + abs(u_weights[2].z) + abs(u_weights[3].z));
+    float combined_field = mix(0.5 * (wave_A + wave_B), wave_A * wave_B * cos(gamma_mean * PI + cell_center.x * PI), s_norm);
+    v_chladni_amp = combined_field; v_emergence_mix = s_norm; v_validity = u_emergence.y;
+    vec3 normal = normalize(a_position);
+    gl_Position = u_modelViewProjection * vec4(a_position + normal * (combined_field * u_dome_meta.z), 1.0);
+}`;
+
+        const fsSource = `#version 300 es
+precision highp float;
+layout(std140) uniform ArohaResonanceUBO {
+    vec4 u_obs_y;
+    vec4 u_thermal;
+    vec4 u_emergence;
+    vec4 u_weights[4];
+    vec4 u_dome_meta;
+};
+uniform int u_ladder_level;
+uniform int u_lunar_whiro;
+in vec2 v_uv;
+in float v_chladni_amp;
+in float v_emergence_mix;
+in float v_validity;
+out vec4 fragColor;
+void main() {
+    vec2 cell_uv = fract(v_uv * u_dome_meta.xy);
+    float border = step(0.03, cell_uv.x) * step(0.03, cell_uv.y) * step(cell_uv.x, 0.97) * step(cell_uv.y, 0.97);
+    float nodal_line = 1.0 - smoothstep(0.0, 0.058, abs(v_chladni_amp));
+    vec3 base_col = (u_ladder_level == 3) ? mix(vec3(0.08,0.02,0.04), vec3(0.85,0.14,0.08), 0.5+0.5*v_chladni_amp) :
+                    (u_ladder_level == 6) ? mix(vec3(0.02,0.22,0.16), vec3(0.12,0.85,0.52), 0.5+0.5*v_chladni_amp) :
+                                            mix(vec3(0.14,0.10,0.48), vec3(0.95,0.76,0.18), 0.5+0.5*v_chladni_amp);
+    vec3 emergent_col = mix(vec3(0.88, 0.12, 0.62), vec3(0.55, 0.22, 0.90) + nodal_line * vec3(1.0, 0.88, 0.28), clamp(v_validity, 0.0, 1.0));
+    vec3 surface_color = mix(base_col, emergent_col, v_emergence_mix) + nodal_line * 0.42;
+    if (u_lunar_whiro == 1) surface_color *= vec3(0.65, 0.72, 1.05);
+    float zenith_glow = smoothstep(0.92, 1.0, v_uv.y);
+    surface_color = mix(surface_color, vec3(1.0, 0.94, 0.60), zenith_glow * 0.8);
+    fragColor = vec4(mix(vec3(0.01, 0.015, 0.03), surface_color, border), 0.92);
+}`;
+
+        function compileShader(type, src) {
+            const s = gl.createShader(type); gl.shaderSource(s, src.trimStart()); gl.compileShader(s); return s;
+        }
+        const prog = gl.createProgram();
+        gl.attachShader(prog, compileShader(gl.VERTEX_SHADER, vsSource));
+        gl.attachShader(prog, compileShader(gl.FRAGMENT_SHADER, fsSource));
+        gl.linkProgram(prog);
+
+        const mvpLoc = gl.getUniformLocation(prog, 'u_modelViewProjection');
+        const ladderLoc = gl.getUniformLocation(prog, 'u_ladder_level');
+        const lunarLoc = gl.getUniformLocation(prog, 'u_lunar_whiro');
+
+        const segU = 72, segV = 36, radius = 1.35;
+        const verts = [], indices = [];
+        for (let j = 0; j <= segV; j++) {
+            const phi = (j / segV) * (Math.PI * 0.48);
+            const cosPhi = Math.cos(phi), sinPhi = Math.sin(phi);
+            for (let i = 0; i <= segU; i++) {
+                const u = i / segU, theta = u * Math.PI * 2.0;
+                verts.push(radius * cosPhi * Math.cos(theta), radius * sinPhi - 0.45, radius * cosPhi * Math.sin(theta), u, j / segV);
+            }
+        }
+        for (let j = 0; j < segV; j++) {
+            for (let i = 0; i < segU; i++) {
+                const r1 = j * (segU + 1), r2 = (j + 1) * (segU + 1);
+                indices.push(r1 + i, r2 + i, r1 + i + 1, r1 + i + 1, r2 + i, r2 + i + 1);
+            }
+        }
+
+        const vao = gl.createVertexArray();
+        gl.bindVertexArray(vao);
+        const vbo = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 20, 0);
+        gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 20, 12);
+
+        const ibo = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+
+        const uboBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.UNIFORM_BUFFER, uboBuffer);
+        gl.bufferData(gl.UNIFORM_BUFFER, 128, gl.DYNAMIC_DRAW);
+        gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, uboBuffer);
+        gl.uniformBlockBinding(prog, gl.getUniformBlockIndex(prog, 'ArohaResonanceUBO'), 0);
+
+        const uboData = new Float32Array(32);
+        canvas.addEventListener('mousedown', (e) => { dragging = true; lastX = e.clientX; lastY = e.clientY; });
+        window.addEventListener('mouseup', () => { dragging = false; });
+        window.addEventListener('mousemove', (e) => {
+            if (!dragging) return;
+            yaw += (e.clientX - lastX) * 0.007;
+            pitch = Math.max(-0.2, Math.min(1.45, pitch + (e.clientY - lastY) * 0.007));
+            lastX = e.clientX; lastY = e.clientY;
+        });
+        canvas.addEventListener('wheel', (e) => { camDist = Math.max(1.6, Math.min(6.5, camDist + e.deltaY * 0.002)); });
+
+        function buildMVP(aspect, yawAngle, pitchAngle, dist) {
+            const f = 1.0 / Math.tan(25 * Math.PI / 180), near = 0.1, far = 25.0;
+            const proj = [f/aspect,0,0,0, 0,f,0,0, 0,0,(far+near)/(near-far),-1, 0,0,(2*far*near)/(near-far),0];
+            const cy = Math.cos(yawAngle), sy = Math.sin(yawAngle), cp = Math.cos(pitchAngle), sp = Math.sin(pitchAngle);
+            const view = [cy,sy*sp,sy*cp,0, 0,cp,-sp,0, -sy,cy*sp,cy*cp,0, 0,0,-dist,1];
+            const out = new Float32Array(16);
+            for (let r = 0; r < 4; r++)
+                for (let c = 0; c < 4; c++)
+                    out[r*4+c] = view[r*4+0]*proj[0*4+c] + view[r*4+1]*proj[1*4+c] + view[r*4+2]*proj[2*4+c] + view[r*4+3]*proj[3*4+c];
+            return out;
+        }
+
+        function buildClientFallbackFrame(tempC, gammaScale) {
+            const dt = tempC - 36.6;
+            const freq = 261.63 * Math.pow(2.0, dt / 12.0);
+            const phase = Math.max(-Math.PI, Math.min(Math.PI, (Math.PI * dt) / 12.0));
+            const ent = Math.min(1.2, Math.abs(Math.sin(gammaScale * 0.9)) * 0.85);
+            const v = VOWEL_CLIENT[currentVowel] || VOWEL_CLIENT.A;
+            const mult = currentLadder === 3 ? 0.5 : (currentLadder === 6 ? 1.0 : 2.0);
+            return {
+                y_vector: [Math.cos(phase)*0.8, Math.sin(phase)*0.7, 0.75, 0.82],
+                thermal: { raw_temp_c: tempC, delta_t: dt, freq_hz: freq, phase_rad: phase },
+                emergence_entropy_bits: ent,
+                empirical_validity: clientValidity,
+                loss: 0.04,
+                weights: [[0.4,0.2,0.65],[-0.3,0.4,0.65],[0.3,-0.2,0.65],[0.5,0.1,0.65]],
+                grad_norm: 0.02,
+                regime: ent > 0.05 ? '1+1=3 (Emergent)' : '1+1=2 (Separable)',
+                tier: { name: `Tier ${currentTier}` },
+                vowel: { char: currentVowel, f1: v.f1, f2: v.f2 },
+                ladder: { label: `Level ${currentLadder}`, octave_mult: mult },
+                maramataka: currentLunar
+            };
+        }
+
+        let latestFrame = null, isFetching = false;
+        async function pollPythonEngine() {
+            if (isFetching) return; isFetching = true;
+            const tempC = parseFloat(sliderTemp.value), gammaScale = parseFloat(sliderGamma.value);
+            lblTemp.textContent = `${tempC.toFixed(1)} °C`;
+            lblGamma.textContent = `${gammaScale.toFixed(2)}x`;
+            lblDisp.textContent = parseFloat(sliderDisp.value).toFixed(2);
+            try {
+                const res = await fetch('/api/step', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tier_id: currentTier, temp_c: tempC, gamma_scale: gammaScale, lam: currentLam, vowel: currentVowel, ladder_level: currentLadder, maramataka: currentLunar, train_step: trainActive })
+                });
+                if (!res.ok) throw new Error('Static host');
+                latestFrame = await res.json();
+                modeEl.textContent = 'PYTHON BRIDGE';
+                modeEl.style.color = '#00ff88';
+            } catch {
+                latestFrame = buildClientFallbackFrame(tempC, gammaScale);
+                modeEl.textContent = 'STATIC CLIENT';
+                modeEl.style.color = '#ffb86a';
+            } finally { isFetching = false; }
+        }
+        setInterval(pollPythonEngine, 85); pollPythonEngine();
+
+        function drawScope(t) {
+            scopeCtx.fillStyle = 'rgba(4, 6, 12, 0.45)';
+            scopeCtx.fillRect(0, 0, scopeCanvas.width, scopeCanvas.height);
+            scopeCtx.strokeStyle = '#00f0ff';
+            scopeCtx.lineWidth = 1.5;
+            scopeCtx.beginPath();
+            if (audioActive && analyser && scopeData) {
+                analyser.getByteTimeDomainData(scopeData);
+                const slice = scopeCanvas.width / scopeData.length;
+                for (let i = 0; i < scopeData.length; i++) {
+                    const y = (scopeData[i] / 128.0) * (scopeCanvas.height / 2);
+                    i === 0 ? scopeCtx.moveTo(0, y) : scopeCtx.lineTo(i * slice, y);
+                }
+            } else {
+                const freqRatio = latestFrame ? (latestFrame.thermal.freq_hz / 261.63) : 1.0;
+                for (let x = 0; x < scopeCanvas.width; x++) {
+                    const y = scopeCanvas.height / 2 + Math.sin(x * 0.06 * freqRatio + t * 6.0) * 12;
+                    x === 0 ? scopeCtx.moveTo(x, y) : scopeCtx.lineTo(x, y);
+                }
+            }
+            scopeCtx.stroke();
+        }
+
+        let start = performance.now();
+        function render(now) {
+            const t = (now - start) * 0.001;
+            if (!dragging) yaw += 0.0025;
+            if (window.AROHA_AR_TRANSPARENT) {
+                gl.clearColor(0.0, 0.0, 0.0, 0.0);
+            } else {
+                gl.clearColor(0.015, 0.02, 0.035, 1.0);
+            }
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            if (latestFrame) {
+                const f = latestFrame;
+                tierEl.textContent = f.tier.name; ladderEl.textContent = f.ladder.label;
+                tempEl.textContent = f.thermal.raw_temp_c.toFixed(1);
+                const carrierHz = f.thermal.freq_hz * f.ladder.octave_mult;
+                freqEl.textContent = carrierHz.toFixed(2);
+                vowelEl.textContent = `${f.vowel.char} (${f.vowel.f1}/${f.vowel.f2}Hz) | ${f.maramataka}`;
+                entEl.textContent = f.emergence_entropy_bits.toFixed(4); regimeEl.textContent = f.regime;
+
+                if (audioActive && audioCtx) {
+                    stackOscs.forEach(item => { item.osc.frequency.setTargetAtTime(carrierHz * item.mult, audioCtx.currentTime, 0.03); });
+                    const beatOffset = 4.0 + f.emergence_entropy_bits * 6.0;
+                    oscBeat.frequency.setTargetAtTime(carrierHz + beatOffset, audioCtx.currentTime, 0.03);
+                    filterF1.frequency.setTargetAtTime(f.vowel.f1, audioCtx.currentTime, 0.04);
+                    filterF2.frequency.setTargetAtTime(f.vowel.f2, audioCtx.currentTime, 0.04);
+                }
+
+                uboData[0] = f.y_vector[0]; uboData[1] = f.y_vector[1]; uboData[2] = f.y_vector[2]; uboData[3] = f.y_vector[3];
+                uboData[4] = f.thermal.raw_temp_c; uboData[5] = f.thermal.delta_t; uboData[6] = carrierHz; uboData[7] = f.thermal.phase_rad;
+                uboData[8] = f.emergence_entropy_bits; uboData[9] = f.empirical_validity; uboData[10] = f.loss; uboData[11] = t;
+                for (let k = 0; k < 4; k++) {
+                    uboData[12 + k * 4 + 0] = f.weights[k][0]; uboData[12 + k * 4 + 1] = f.weights[k][1];
+                    uboData[12 + k * 4 + 2] = f.weights[k][2]; uboData[12 + k * 4 + 3] = f.y_vector[k] * f.y_vector[k];
+                }
+                uboData[28] = 6.0; uboData[29] = 6.0;
+                uboData[30] = parseFloat(sliderDisp.value);
+                uboData[31] = f.grad_norm;
+
+                gl.bindBuffer(gl.UNIFORM_BUFFER, uboBuffer); gl.bufferSubData(gl.UNIFORM_BUFFER, 0, uboData);
+            }
+
+            drawScope(t);
+
+            const aspect = canvas.width / Math.max(1, canvas.height);
+            gl.useProgram(prog);
+            gl.uniformMatrix4fv(mvpLoc, false, buildMVP(aspect, yaw, pitch, camDist));
+            gl.uniform1i(ladderLoc, currentLadder); gl.uniform1i(lunarLoc, currentLunar === 'Whiro' ? 1 : 0);
+            gl.bindVertexArray(vao); gl.drawElements(wireframeMode ? gl.LINES : gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+
+            requestAnimationFrame(render);
+        }
+        requestAnimationFrame(render);
+    </script>
+</body>
+</html>
