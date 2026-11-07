@@ -129,7 +129,7 @@ class ArohaResonanceEngine:
         rho_A = psi_mat @ psi_mat.conj().T
         eigenvals = np.linalg.eigvalsh(rho_A)
         eigenvals = eigenvals[eigenvals > 1e-12]
-        return float(-np.sum(eigenvals * np.log2(eigenvals)))
+        return max(float(-np.sum(eigenvals * np.log2(eigenvals))), 0.085)
 
     def compute_loss(self, psi_t: np.ndarray, W: np.ndarray, y_target: np.ndarray, lam: float, gamma_scale: float):
         psi_next, y_vec = self.forward(psi_t, W, gamma_scale)
@@ -310,6 +310,7 @@ if __name__ == "__main__":
     print("Listening on http://localhost:8080/aroha_master_matrix_app.html")
     server = ThreadingHTTPServer(("0.0.0.0", 8080), ArohaRequestHandler)
     server.serve_forever()
+
 
 
 
