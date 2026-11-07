@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 import json
 import time
 import os
@@ -219,12 +219,12 @@ class ArohaResonanceEngine:
         dom_mode = MODE_NAMES[dom_idx]
         dom_val = y_vec[dom_idx]
         dt = snap["thermal"]["delta_t"]
-        thermal_note = "locked at the 36.6°C biological superconductor baseline" if abs(dt) < 0.05 else f"running {dt:+.1f}°C from the 36.6°C fulcrum"
+        thermal_note = "locked at the 36.6Â°C biological superconductor baseline" if abs(dt) < 0.05 else f"running {dt:+.1f}Â°C from the 36.6Â°C fulcrum"
         synth_reply = (
             f"[{snap['tier']['name']} | {snap['ladder']['element']} | {snap['maramataka']}] "
             f"Regarding \"{prompt}\": Field is {thermal_note} at {carrier_hz} Hz, "
             f"with Vocal Key '{snap['vowel']['char']}' ({snap['vowel']['role']}) driving {dom_mode} ({dom_val:+.3f}). "
-            f"Cross-partition entanglement is S(ρ_A) = {snap['emergence_entropy_bits']:.4f} bits [{snap['regime']}]."
+            f"Cross-partition entanglement is S(Ï_A) = {snap['emergence_entropy_bits']:.4f} bits [{snap['regime']}]."
         )
         return {
             "reply": synth_reply,
@@ -308,6 +308,9 @@ if __name__ == "__main__":
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     print("=== AROHA v40 Master Matrix + Tarot/Astro/Domains Bridge Online ===")
     print("Listening on http://localhost:8080/aroha_master_matrix_app.html")
-    server = ThreadingHTTPServer(("127.0.0.1", 8080), ArohaRequestHandler)
+    server = ThreadingHTTPServer(("0.0.0.0", 8080), ArohaRequestHandler)
     server.serve_forever()
+
+
+
 

@@ -1,0 +1,12 @@
+﻿{
+  "region": "Lower Hutt / Te Whanganui-a-Tara",
+  "mission": "AROHA Field Telemetry & Acoustic Survey",
+  "waypoints": [
+    { "id": "WP-01", "zone": "Pencarrow", "name": "Burdan's Gate Trailhead", "lat": -41.3542, "lon": 174.8558, "acoustic_hz": 110.0 },
+    { "id": "WP-02", "zone": "Pencarrow", "name": "Ridge Observation Post", "lat": -41.3621, "lon": 174.8531, "acoustic_hz": 104.5 },
+    { "id": "WP-03", "zone": "Pencarrow", "name": "WWII Subterranean Magazine", "lat": -41.3689, "lon": 174.8512, "acoustic_hz": 98.2 },
+    { "id": "WP-04", "zone": "Gracefield", "name": "Bell Road Embedded Spur", "lat": -41.2364, "lon": 174.9142, "acoustic_hz": 261.63 },
+    { "id": "WP-05", "zone": "Gracefield", "name": "Dunlop Industrial Turnout", "lat": -41.2389, "lon": 174.9185, "acoustic_hz": 261.63 },
+    { "id": "WP-06", "zone": "Gracefield", "name": "Seaview Corridor Terminus", "lat": -41.2428, "lon": 174.9161, "acoustic_hz": 261.63 }
+  ]
+}
